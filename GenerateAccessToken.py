@@ -9,17 +9,17 @@ class GenerateAccessToken:
 
     def getAccessToken(self):
         credentials = {
-            "client_id": f"{os.environ.get('clientIdHOM')}",
-            "client_secret": f"{os.environ.get('clientSecretHOM')}",
+            "client_id": f"Client_Id_be4589bbc38dfbb6443aca08c2582528643cfa72",
+            "client_secret": f"Client_Secret_f03d74c83b19878dbc4b1990ac72378fb80ca6f6",
         }
 
-        certificatePEM = "certificadoHOM.pem"
+        certificatePEM = "certificadoPRD.pem"
 
         auth = base64.b64encode(
             (f"{credentials['client_id']}:{credentials['client_secret']}"
              ).encode()).decode()
 
-        url = "https://pix-h.api.efipay.com.br/oauth/token"
+        url = "https://pix.api.efipay.com.br/oauth/token"
 
         payload = "{\r  \n\"grant_type\": \"client_credentials\"\r\n}"
         headers = {
@@ -32,15 +32,10 @@ class GenerateAccessToken:
                                      headers=headers,
                                      data=payload,
                                      cert=certificatePEM)
-            print(response.status_code)
             if response.status_code == 200:
-                return response.text['access_token']
+                return response.json()['access_token']
             else:
                 raise "Error"
         except Exception:
             return None
 
-
-x = GenerateAccessToken().getAccessToken()
-
-print(x)
