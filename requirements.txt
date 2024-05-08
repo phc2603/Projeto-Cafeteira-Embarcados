@@ -1,6 +1,0 @@
-qrcode
-Requests
-tkinter
-json
-base64
-os
