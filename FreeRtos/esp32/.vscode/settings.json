@@ -20,6 +20,10 @@
         "freertos.h": "c",
         "timers.h": "c",
         "gpio.h": "c",
-        "esp_log.h": "c"
+        "esp_log.h": "c",
+        "adc.h": "c",
+        "adc_types_legacy.h": "c",
+        "adc_continuous.h": "c",
+        "adc_oneshot.h": "c"
     }
 }
