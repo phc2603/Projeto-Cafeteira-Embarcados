@@ -93,6 +93,8 @@
         "thread": "cpp",
         "cinttypes": "cpp",
         "typeinfo": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "ds18b20.h": "c",
+        "owb.h": "c"
     }
 }

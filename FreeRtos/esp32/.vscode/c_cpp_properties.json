@@ -11,7 +11,9 @@
                 "${config:idf.espAdfPathWin}/components/**",
                 "${workspaceFolder}/**",
                 "${FREERTOS_PATH}/FreeRTOS/Source/include",
-                "${FREERTOS_PATH}/FreeRTOS/Source/portable/MSVC-MingW"
+                "${FREERTOS_PATH}/FreeRTOS/Source/portable/MSVC-MingW",
+                "${workspaceFolder}/lib/esp32-ds18b20-master/include",
+                "C:/Users/tiago/esp/v5.2.1/esp-idf/components/driver/gpio/include"
             ],
             "browse": {
                 "path": [
