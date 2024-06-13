@@ -17,8 +17,7 @@
 #include <string.h>
 #include "iostream"
 #include "wifi.cpp"
-#include "ds18b20.h"
-#include <onewire_bus_impl_rmt.h>
+#include "temperature.cpp"
 
 using namespace std;
 
@@ -31,8 +30,8 @@ using namespace std;
 
 #define COFFE_PIN GPIO_NUM_13
 
-#define EXAMPLE_ONEWIRE_BUS_GPIO    14
-#define EXAMPLE_ONEWIRE_MAX_DS18B20 1
+#define TEMP_PIN    14
+
 // quando tava em c, podia definir o pino so falando o numero inteiro agora tem que usar GPIO_NUM e falar o numero do pino
 
 TimerHandle_t xSubscriber;
@@ -70,7 +69,7 @@ void setup_pins()
 void create_tasks()
 {
     xSubscriber = xTimerCreate("Subscriber", pdMS_TO_TICKS(30), pdTRUE, (void *)0, subscriber_callback);
-    xTemperature = xTaskCreate(&temperature_task, "temperature_task", 4*2048, NULL, 5, NULL);
+    xTemperature = xTaskCreate(&temperature_task, "temperature_task", 2048, NULL, 5, NULL);
     xWifi = xTaskCreate(&wifi_task, "wifi_task", 2048, NULL, 5, NULL);
 }
 
@@ -91,7 +90,7 @@ void validate_tasks()
     if (xWifi == NULL) 
     {
         ESP_LOGE("validate_tasks", "Erro ao criar o task wifi");
-        xWifi = xTaskCreate(&wifi_task, "wifi_task", 4*2048, NULL, 5, NULL);
+        xWifi = xTaskCreate(&wifi_task, "wifi_task", 2048, NULL, 5, NULL);
     }
 
 }
@@ -117,42 +116,9 @@ void wifi_setup()
     Wifi::Wifi_init_sta();
 }
 
-int ds18b20_device_num = 0;
-ds18b20_device_handle_t ds18b20s[EXAMPLE_ONEWIRE_MAX_DS18B20];
 void temp_setup()
 {
-    onewire_bus_handle_t bus = NULL;
-    onewire_bus_config_t bus_config = {
-        .bus_gpio_num = EXAMPLE_ONEWIRE_BUS_GPIO,
-    };
-    onewire_bus_rmt_config_t rmt_config = {
-        .max_rx_bytes = 12, // 1byte ROM command + 8byte ROM number + 1byte device command
-    };
-    ESP_ERROR_CHECK(onewire_new_bus_rmt(&bus_config, &rmt_config, &bus));
-
-
-    onewire_device_iter_handle_t iter = NULL;
-    onewire_device_t next_onewire_device;
-    esp_err_t search_result = ESP_OK;
-
-    // create 1-wire device iterator, which is used for device search
-    ESP_ERROR_CHECK(onewire_new_device_iter(bus, &iter));
-    ESP_LOGI("Setup Temperature", "Device iterator created, start searching...");
-    do {
-        search_result = onewire_device_iter_get_next(iter, &next_onewire_device);
-        if (search_result == ESP_OK) { // found a new device, let's check if we can upgrade it to a DS18B20
-            ds18b20_config_t ds_cfg = {};
-            // check if the device is a DS18B20, if so, return the ds18b20 handle
-            if (ds18b20_new_device(&next_onewire_device, &ds_cfg, &ds18b20s[ds18b20_device_num]) == ESP_OK) {
-                ESP_LOGI("Setup Temperature", "Found a DS18B20[%d], address: %016llX", ds18b20_device_num, next_onewire_device.address);
-                ds18b20_device_num++;
-            } else {
-                ESP_LOGI("Setup Temperature", "Found an unknown device, address: %016llX", next_onewire_device.address);
-            }
-        }
-    } while (search_result != ESP_ERR_NOT_FOUND);
-    ESP_ERROR_CHECK(onewire_del_device_iter(iter));
-    ESP_LOGI("Setup Temperature", "Searching done, %d DS18B20 device(s) found", ds18b20_device_num);
+    Temperature(TEMP_PIN);
 }
 
 #pragma endregion Config_Procedures
@@ -169,7 +135,7 @@ extern "C" void app_main()
     wifi_setup();
 
     temp_setup();
-
+    
     setup_pins();
 
     create_tasks();
@@ -208,10 +174,18 @@ void subscriber_callback(TimerHandle_t xTimer) {
 
 void temperature_task(void *pvParameter)
 {
-    for (int i = 0; i < ds18b20_device_num; i ++) {
-        ESP_ERROR_CHECK(ds18b20_trigger_temperature_conversion(ds18b20s[i]));
-        ESP_ERROR_CHECK(ds18b20_get_temperature(ds18b20s[i], &temperature));
-        ESP_LOGI("Temp Task", "temperature read from DS18B20[%d]: %.2fC", i, temperature);
+    while (true)
+    {
+        if(Temperature::found)
+        {
+            temperature = Temperature::GetTemperature();
+            ESP_LOGI("temperature_task", "Temperatura : %f", temperature);
+        }
+        else
+        {
+           temp_setup(); 
+        }
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
 
