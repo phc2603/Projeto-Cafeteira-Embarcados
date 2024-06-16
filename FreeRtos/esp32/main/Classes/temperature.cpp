@@ -1,16 +1,10 @@
-#include "ds18b20.h"
-#include <onewire_bus_impl_rmt.h>
-#include <esp_log.h>
+#include "../Interfaces/itemperature.h"
 
 #ifndef TEMPERATURE_H
 #define TEMPERATURE_H
-class Temperature
+class Temperature : public iTemperature
 {
-private:
-    static int _pin;
-    static ds18b20_device_handle_t ds18b20s;
-public:
-    static bool found;
+    public:
     Temperature(int pin)
     {
         _pin =pin;
@@ -78,6 +72,3 @@ public:
 
 #endif // TEMPERATURE_H
 
-bool Temperature::found = false;
-int Temperature::_pin;
-ds18b20_device_handle_t Temperature::ds18b20s;

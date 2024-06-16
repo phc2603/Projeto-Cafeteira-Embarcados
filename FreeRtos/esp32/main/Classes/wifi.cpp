@@ -1,28 +1,20 @@
-#include "esp_wifi.h"
-#include <string.h>
-#include "esp_log.h"
-#include <lwip/sockets.h>
-#include <lwip/netdb.h>
+#include "../Interfaces/iWifi.h"
 
 #ifndef WIFI_H
 #define WIFI_H
 
 
-class Wifi
+class Wifi : public iWifi
 {
-    private:
-        static const char* _ssid;
-        static const char* _password;
-
     public:
-
         Wifi(char* SSID, char* PASSWORD)
         {
             _ssid = SSID;
             _password =  PASSWORD;
         }
 
-        static bool ping_google() {
+        static bool ping_google() 
+        {
             const char* hostname = "www.google.com";
             struct sockaddr_in server_addr;
             int sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -99,6 +91,3 @@ class Wifi
 };
 
 #endif // WIFI_H
-
-const char* Wifi::_ssid = nullptr;
-const char* Wifi::_password = nullptr;

@@ -1,22 +1,12 @@
-
-#include "mqtt_client.h"
-#include <esp_log.h>
-#include "protocol_examples_common.h"
+#include "../Interfaces/iRabbitmqMqtt.h"
 
 #ifndef RABBIT_H
 #define RABBIT_H
 
-class Rabbitmq
+class RabbitmqMqtt : public iRabbitmqMqtt
 {
     
-    private:
-        static esp_mqtt_client_handle_t client;
-        static esp_mqtt_client_config_t mqtt_cfg;
-
     public:
-        static bool initialized;
-        static char* message;
-    
     static void subscribe()
     {
         esp_mqtt_client_subscribe(client, "coffe" , 0);
@@ -51,8 +41,7 @@ class Rabbitmq
             ESP_LOGI("mqtt_example", "MQTT_EVENT_DATA");
             ESP_LOGI("mqtt_example","TOPIC=%.*s\r\n", event->topic_len, event->topic);
             ESP_LOGI("mqtt_example","DATA=%.*s\r\n", event->data_len, event->data);
-            unsubscribe();
-            message = event->data;
+            commandQueue.push(event->data[0]);
             break;
         case MQTT_EVENT_ERROR:
             ESP_LOGI("mqtt_example", "MQTT_EVENT_ERROR");
@@ -68,10 +57,11 @@ class Rabbitmq
 
     static void rabbitmqInitialize(char* uri)
     {
+        //uri:"mqtt://192.168.0.15:1883"
         memset(&mqtt_cfg, 0, sizeof(mqtt_cfg));
         initialized = false;
         ESP_LOGI("mqtt_example", "1");
-        mqtt_cfg.broker.address.uri = "mqtt://192.168.0.15:1883";
+        mqtt_cfg.broker.address.uri = uri;
         mqtt_cfg.session.protocol_ver = MQTT_PROTOCOL_V_3_1_1;
         mqtt_cfg.credentials.username = "guest";
         mqtt_cfg.credentials.authentication.password="guest";
@@ -91,17 +81,11 @@ class Rabbitmq
         initialized = true;
     }
 
-    Rabbitmq()
+    RabbitmqMqtt()
     {
-        message = NULL;
+
     }
 
 };
 
 #endif
-
-char* Rabbitmq::message = NULL;
-bool Rabbitmq::initialized = false;
-
-esp_mqtt_client_handle_t Rabbitmq::client = {};
-esp_mqtt_client_config_t Rabbitmq::mqtt_cfg = {};

@@ -8,10 +8,10 @@
 #include "rom/gpio.h"
 #include "esp_event_loop.h"
 #include "nvs_flash.h"
-#include "wifi.cpp"
-#include "temperature.cpp"
-#include "rabbit.cpp"
-
+#include "Classes/wifi.cpp"
+#include "Classes/temperature.cpp"
+#include "Classes/rabbitmqMqtt.cpp"
+#include "Enum/coffeTimes.h"
 
 
 #pragma endregion Imports
@@ -23,14 +23,24 @@
 #define COFFE_PIN GPIO_NUM_13
 
 #define TEMP_PIN    14
-
 // quando tava em c, podia definir o pino so falando o numero inteiro agora tem que usar GPIO_NUM e falar o numero do pino
 
+//tasks
 BaseType_t xSubscriber;
 BaseType_t xTemperature;
 BaseType_t xWifi;
-Rabbitmq rabbitmq;
+
+//temperature
 float temperature = 0;
+const float idealTemperature = 27;
+
+//wifi
+char* ssid = "Lemescosonet";
+char* pass = "nettiigbn";
+
+//rabbitmq
+RabbitmqMqtt rabbitmq;
+char* rabbitUri = "mqtt://192.168.0.15:1883";
 
 #pragma endregion Variables_Declaration
 
@@ -59,9 +69,9 @@ void setup_pins()
 
 void create_tasks()
 {
-    xSubscriber = xTaskCreate(&subscriber_callback, "subscriber_task", 2048, NULL, 5, NULL);
-    xTemperature = xTaskCreate(&temperature_task, "temperature_task", 4*2048, NULL, 5, NULL);
-    xWifi = xTaskCreate(&wifi_task, "wifi_task", 2048, NULL, 5, NULL);
+    xSubscriber = xTaskCreate(&subscriber_callback, "subscriber_task", 2*2048, NULL, 5, NULL);
+    xTemperature = xTaskCreate(&temperature_task, "temperature_task", 2*2048, NULL, 5, NULL);
+    xWifi = xTaskCreate(&wifi_task, "wifi_task", 2*2048, NULL, 5, NULL);
 }
 
 void validate_tasks()
@@ -69,19 +79,19 @@ void validate_tasks()
     if (xSubscriber == NULL) 
     {
         ESP_LOGE("validate_tasks", "Erro ao criar o subscriber");
-        xSubscriber = xTaskCreate(&subscriber_callback, "subscriber_task", 2048, NULL, 5, NULL);
+        xSubscriber = xTaskCreate(&subscriber_callback, "subscriber_task", 2*2048, NULL, 5, NULL);
     }
 
     if (xTemperature == NULL) 
     {
         ESP_LOGE("validate_tasks", "Erro ao criar o task temperatura");
-        xTemperature = xTaskCreate(&temperature_task, "temperature_task", 4*2048, NULL, 5, NULL);
+        xTemperature = xTaskCreate(&temperature_task, "temperature_task", 2*2048, NULL, 5, NULL);
     }
 
     if (xWifi == NULL) 
     {
         ESP_LOGE("validate_tasks", "Erro ao criar o task wifi");
-        xWifi = xTaskCreate(&wifi_task, "wifi_task", 2048, NULL, 5, NULL);
+        xWifi = xTaskCreate(&wifi_task, "wifi_task", 2*2048, NULL, 5, NULL);
     }
 
 }
@@ -99,8 +109,6 @@ void esp_error_handler()
 
 void wifi_setup()
 {
-    char* ssid = "Lemescosonet";
-    char* pass = "nettiigbn";
 
     Wifi(ssid, pass); 
     //podemos depois passar para um arquivo o ssid e password mas por enquanto está mockado
@@ -119,7 +127,7 @@ void rabbitmqInitialize()
     while(!Wifi::Check_wifi_status()){ vTaskDelay(pdMS_TO_TICKS(1000));}
     while(!rabbitmq.initialized)
     {
-        rabbitmq.rabbitmqInitialize("192.168.0.15");
+        rabbitmq.rabbitmqInitialize(rabbitUri);
         if(!rabbitmq.initialized)
             vTaskDelay(pdMS_TO_TICKS(1000));
     }
@@ -173,34 +181,37 @@ void subscriber_callback(void *pvParameter) {
 
     while(true)
     {
-        if(rabbitmq.message != NULL)
+        if(!rabbitmq.commandQueue.empty())
         {
             gpio_set_level(COFFE_PIN, true);
-            while(temperature < 27)
+            while(temperature < idealTemperature)
             {
                 ESP_LOGW("COFFE", "Esperando temperatura ideal");
                 vTaskDelay(pdMS_TO_TICKS(1000));
             }
-            switch (rabbitmq.message[0])
+            switch (rabbitmq.commandQueue.front())
             {
                 case 'L':
                     ESP_LOGW("COFFE", "Começando cafe grande");
-                     vTaskDelay(pdMS_TO_TICKS(20000));
+                     vTaskDelay(pdMS_TO_TICKS(CoffeTimes(Large)));
                     break;
                 case 'M':
                     ESP_LOGW("COFFE", "Começando cafe medio");
-                    vTaskDelay(pdMS_TO_TICKS(15000));
+                    vTaskDelay(pdMS_TO_TICKS(CoffeTimes(Medium)));
                     break;
                 case 'S':
                     ESP_LOGW("COFFE", "Começando cafe pequeno");
-                    vTaskDelay(pdMS_TO_TICKS(10000));
+                    vTaskDelay(pdMS_TO_TICKS(CoffeTimes(Small)));
                     break;
             }
             gpio_set_level(COFFE_PIN, false);
             ESP_LOGW("COFFE", "Finalizando o cafe");
-            rabbitmq.message = NULL;
-            rabbitmq.subscribe();
-
+            rabbitmq.commandQueue.pop();
+            vTaskDelay(pdMS_TO_TICKS(10000));
+        }
+        else
+        {
+           vTaskDelay(pdMS_TO_TICKS(100)); 
         }
     }
     
