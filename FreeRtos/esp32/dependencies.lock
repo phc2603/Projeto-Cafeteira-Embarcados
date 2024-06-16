@@ -16,6 +16,12 @@ dependencies:
     source:
       type: idf
     version: 5.2.1
-manifest_hash: bdef2d0f66bd0dc194275bacebb538012aaeef79b318e3b18629307a0c7d4389
+  protocol_examples_common:
+    component_hash: null
+    source:
+      path: C:\Users\tiago\esp\v5.2.1\esp-idf\examples\common_components\protocol_examples_common
+      type: local
+    version: '*'
+manifest_hash: 687556f8f8f0bf75ad1772e0a0018308a6fed8e00fe85bf083e801bf026779ae
 target: esp32
 version: 1.0.0

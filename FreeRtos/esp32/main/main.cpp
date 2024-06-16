@@ -3,23 +3,15 @@
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "freertos/timers.h"
 #include "esp_log.h"
 #include "driver/gpio.h"
 #include "rom/gpio.h"
-#include <esp_adc/adc_oneshot.h>
-#include <esp_adc/adc_continuous.h>
-#include <driver/adc.h>
-#include <stdio.h>
-#include <time.h>
 #include "esp_event_loop.h"
 #include "nvs_flash.h"
-#include <string.h>
-#include "iostream"
 #include "wifi.cpp"
 #include "temperature.cpp"
+#include "rabbit.cpp"
 
-using namespace std;
 
 
 #pragma endregion Imports
@@ -34,12 +26,11 @@ using namespace std;
 
 // quando tava em c, podia definir o pino so falando o numero inteiro agora tem que usar GPIO_NUM e falar o numero do pino
 
-TimerHandle_t xSubscriber;
+BaseType_t xSubscriber;
 BaseType_t xTemperature;
 BaseType_t xWifi;
-
+Rabbitmq rabbitmq;
 float temperature = 0;
-
 
 #pragma endregion Variables_Declaration
 
@@ -47,7 +38,7 @@ float temperature = 0;
 #pragma region Functions_Declaration
 
 
-void subscriber_callback(TimerHandle_t xTimer);
+void subscriber_callback(void *pvParameter);
 void temperature_task(void *pvParameter);
 void wifi_task(void *pvParameter);
 
@@ -68,8 +59,8 @@ void setup_pins()
 
 void create_tasks()
 {
-    xSubscriber = xTimerCreate("Subscriber", pdMS_TO_TICKS(30), pdTRUE, (void *)0, subscriber_callback);
-    xTemperature = xTaskCreate(&temperature_task, "temperature_task", 2048, NULL, 5, NULL);
+    xSubscriber = xTaskCreate(&subscriber_callback, "subscriber_task", 2048, NULL, 5, NULL);
+    xTemperature = xTaskCreate(&temperature_task, "temperature_task", 4*2048, NULL, 5, NULL);
     xWifi = xTaskCreate(&wifi_task, "wifi_task", 2048, NULL, 5, NULL);
 }
 
@@ -78,13 +69,13 @@ void validate_tasks()
     if (xSubscriber == NULL) 
     {
         ESP_LOGE("validate_tasks", "Erro ao criar o subscriber");
-        xSubscriber = xTimerCreate("Subscriber", pdMS_TO_TICKS(30), pdTRUE, (void *)0, subscriber_callback);
+        xSubscriber = xTaskCreate(&subscriber_callback, "subscriber_task", 2048, NULL, 5, NULL);
     }
 
     if (xTemperature == NULL) 
     {
         ESP_LOGE("validate_tasks", "Erro ao criar o task temperatura");
-        xTemperature = xTaskCreate(&temperature_task, "temperature_task", 2048, NULL, 5, NULL);
+        xTemperature = xTaskCreate(&temperature_task, "temperature_task", 4*2048, NULL, 5, NULL);
     }
 
     if (xWifi == NULL) 
@@ -103,22 +94,35 @@ void esp_error_handler()
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK(ret);
+    //ESP_ERROR_CHECK(esp_event_loop_create_default());
 }
 
 void wifi_setup()
 {
-    char* ssid = "Esp32";
-    char* pass = "12345678";
+    char* ssid = "Lemescosonet";
+    char* pass = "nettiigbn";
 
     Wifi(ssid, pass); 
     //podemos depois passar para um arquivo o ssid e password mas por enquanto está mockado
 
     Wifi::Wifi_init_sta();
+    while(!Wifi::Check_wifi_status()){ vTaskDelay(pdMS_TO_TICKS(1000));}
 }
 
 void temp_setup()
 {
     Temperature(TEMP_PIN);
+}
+
+void rabbitmqInitialize()
+{
+    while(!Wifi::Check_wifi_status()){ vTaskDelay(pdMS_TO_TICKS(1000));}
+    while(!rabbitmq.initialized)
+    {
+        rabbitmq.rabbitmqInitialize("192.168.0.15");
+        if(!rabbitmq.initialized)
+            vTaskDelay(pdMS_TO_TICKS(1000));
+    }
 }
 
 #pragma endregion Config_Procedures
@@ -140,6 +144,8 @@ extern "C" void app_main()
 
     create_tasks();
 
+    rabbitmqInitialize();
+    
     while (true) 
     {
         validate_tasks();
@@ -163,10 +169,40 @@ void wifi_task(void *pvParameter)
     }
 }
 
-void subscriber_callback(TimerHandle_t xTimer) {
-    static bool led_state = false;
-    led_state = !led_state;
-    gpio_set_level(COFFE_PIN, led_state);
+void subscriber_callback(void *pvParameter) {
+
+    while(true)
+    {
+        if(rabbitmq.message != NULL)
+        {
+            gpio_set_level(COFFE_PIN, true);
+            while(temperature < 27)
+            {
+                ESP_LOGW("COFFE", "Esperando temperatura ideal");
+                vTaskDelay(pdMS_TO_TICKS(1000));
+            }
+            switch (rabbitmq.message[0])
+            {
+                case 'L':
+                    ESP_LOGW("COFFE", "Começando cafe grande");
+                     vTaskDelay(pdMS_TO_TICKS(20000));
+                    break;
+                case 'M':
+                    ESP_LOGW("COFFE", "Começando cafe medio");
+                    vTaskDelay(pdMS_TO_TICKS(15000));
+                    break;
+                case 'S':
+                    ESP_LOGW("COFFE", "Começando cafe pequeno");
+                    vTaskDelay(pdMS_TO_TICKS(10000));
+                    break;
+            }
+            gpio_set_level(COFFE_PIN, false);
+            ESP_LOGW("COFFE", "Finalizando o cafe");
+            rabbitmq.message = NULL;
+            rabbitmq.subscribe();
+
+        }
+    }
     
     
 }
@@ -183,7 +219,8 @@ void temperature_task(void *pvParameter)
         }
         else
         {
-           temp_setup(); 
+            ESP_LOGI("temperature_task", "Temperatura nao configurado");
+            temp_setup(); 
         }
         vTaskDelay(pdMS_TO_TICKS(1000));
     }

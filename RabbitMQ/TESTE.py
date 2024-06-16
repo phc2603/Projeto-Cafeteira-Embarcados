@@ -51,7 +51,6 @@ def rabbitmq_thread():
     channel.basic_consume(queue='coffe_machine', on_message_callback=callback, auto_ack=True)
     channel.start_consuming()
 
-# Start MQTT and RabbitMQ threads
 mqtt_thread = threading.Thread(target=mqtt_thread)
 mqtt_thread.daemon = True
 mqtt_thread.start()
@@ -60,18 +59,6 @@ rabbitmq_thread = threading.Thread(target=rabbitmq_thread)
 rabbitmq_thread.daemon = True
 rabbitmq_thread.start()
 
-connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
-channel = connection.channel()
-
-channel.queue_declare(queue='coffe_machine')
-
-channel.basic_publish(exchange='',
-                      routing_key='coffe_machine',
-                      body='L')
-
-
 # Keep the main thread alive
 while True:
     pass
-
-

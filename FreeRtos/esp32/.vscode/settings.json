@@ -96,5 +96,7 @@
         "variant": "cpp",
         "ds18b20.h": "c",
         "owb.h": "c"
-    }
+    },
+    "C_Cpp.errorSquiggles": "enabled",
+    "C_Cpp.intelliSenseEngineFallback": "enabled"
 }
