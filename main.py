@@ -10,8 +10,7 @@ class RabbitQueue:
     def __init__(self):
         self.connection = pika.BlockingConnection(pika.ConnectionParameters("172.20.10.5"))
         self.channel = self.connection.channel()
-        self.routingQueueCoffe = "coffe_machine"
-        self.channel.queue_declare(queue=self.routingQueueCoffe)
+        self.routingQueueCoffe = "mqtt-subscription-coffeqos0"
 
     def sendToQueue(self, coffeSize):
         self.channel.basic_publish(exchange='',
