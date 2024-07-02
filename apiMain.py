@@ -25,7 +25,7 @@ class ApiMain:
             "valor": {
                 "original": coffeValue
             },
-            "chave": "07d967a0-9d71-47dd-8aa6-034781f95572",
+            "chave": "API KEY",
             "solicitacaoPagador": "Cobrança dos serviços prestados."
         }
         try:
