@@ -9,8 +9,8 @@ class GenerateAccessToken:
 
     def getAccessToken(self):
         credentials = {
-            "client_id": f"Client_Id_be4589bbc38dfbb6443aca08c2582528643cfa72",
-            "client_secret": f"Client_Secret_f03d74c83b19878dbc4b1990ac72378fb80ca6f6",
+            "client_id": f"CLIENT ID",
+            "client_secret": f"CLIENT SECRET",
         }
 
         certificatePEM = "certificadoPRD.pem"
