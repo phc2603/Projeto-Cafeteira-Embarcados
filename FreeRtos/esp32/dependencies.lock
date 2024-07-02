@@ -6,7 +6,7 @@ dependencies:
       type: service
     version: 0.1.1
   espressif/onewire_bus:
-    component_hash: c4c781940d8bd988432b47ac3ee68479c69e14e01fdfba0b61365b233a3ba5d6
+    component_hash: HASH
     source:
       service_url: https://api.components.espressif.com/
       type: service
