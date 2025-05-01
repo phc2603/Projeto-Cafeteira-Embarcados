@@ -35,8 +35,8 @@ float temperature = 0;
 const float idealTemperature = 27;
 
 //wifi
-char* ssid = "Lemescosonet";
-char* pass = "nettiigbn";
+char* ssid = "MyWifi";
+char* pass = "MyPassword";
 
 //rabbitmq
 RabbitmqMqtt rabbitmq;
